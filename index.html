@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Dashboard — FFM Ops</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink:   #0f1117;
+  --ink2:  #181c27;
+  --ink3:  #1f2436;
+  --ink4:  #272d42;
+  --line:  rgba(255,255,255,.07);
+  --line2: rgba(255,255,255,.12);
+  --dust:  #8b92ad;
+  --ghost: #3d445c;
+  --white: #e8eaf3;
+  --snow:  #c4c8d8;
+
+  --lime:  #a3e635;
+  --lime2: rgba(163,230,53,.14);
+  --cyan:  #22d3ee;
+  --cyan2: rgba(34,211,238,.14);
+  --rose:  #fb7185;
+  --rose2: rgba(251,113,133,.14);
+  --amber: #fbbf24;
+  --amb2:  rgba(251,191,36,.14);
+  --violet:#a78bfa;
+  --vio2:  rgba(167,139,250,.14);
+  --sky:   #38bdf8;
+  --sky2:  rgba(56,189,248,.14);
+
+  --sans: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --r: 8px; --r2: 12px; --r3: 16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--ink);
+  color: var(--white);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  background: var(--ink2);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-mark {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lime);
+  letter-spacing: .04em;
+}
+.brand-rule { width: 1px; height: 22px; background: var(--line2); }
+.brand-tag {
+  font-size: 11px;
+  color: var(--ghost);
+  font-family: var(--mono);
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--mono);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.chip-lime { background: var(--lime2); color: var(--lime); border: 1px solid rgba(163,230,53,.3); }
+.chip-sky  { background: var(--sky2);  color: var(--sky);  border: 1px solid rgba(56,189,248,.3); }
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); animation: blink 2.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.7)} }
+
+/* ── FILTER STRIP ── */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 28px;
+  background: var(--ink2);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.fl { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--ghost); font-family: var(--mono); }
+.seggroup { display: flex; gap: 2px; background: var(--ink3); border: 1px solid var(--line); border-radius: var(--r2); padding: 3px; }
+.seg {
+  padding: 4px 13px;
+  border-radius: calc(var(--r2) - 3px);
+  font-size: 11px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--dust);
+  font-family: var(--sans);
+  transition: all .15s;
+  white-space: nowrap;
+}
+.seg:hover { color: var(--white); }
+.seg.on { background: var(--ink4); color: var(--white); font-weight: 500; }
+.vsep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+select {
+  background: var(--ink3);
+  border: 1px solid var(--line2);
+  color: var(--snow);
+  padding: 5px 10px;
+  border-radius: var(--r);
+  font-family: var(--sans);
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+}
+select:focus { border-color: rgba(163,230,53,.4); }
+.btn-export {
+  padding: 5px 12px;
+  border-radius: var(--r);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--line2);
+  background: var(--ink3);
+  color: var(--dust);
+  font-family: var(--sans);
+  transition: all .15s;
+}
+.btn-export:hover { color: var(--white); border-color: var(--line2); }
+
+/* ── LAYOUT ── */
+.main { padding: 20px 28px 40px; }
+
+/* ── KPI STRIP ── */
+.kpis { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 18px; }
+.kpi {
+  background: var(--ink2);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: border-color .2s;
+}
+.kpi:hover { border-color: var(--line2); }
+.kpi-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; }
+.kpi .kl { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--ghost); font-family: var(--mono); margin-bottom: 8px; }
+.kpi .kv { font-size: 22px; font-weight: 600; font-family: var(--mono); line-height: 1.1; margin-bottom: 4px; }
+.kpi .ks { font-size: 10px; color: var(--dust); }
+
+/* ── SECTION LABEL ── */
+.slbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--ghost);
+  font-family: var(--mono);
+  margin: 18px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.slbl::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+/* ── GRID LAYOUTS ── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.g3 { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 14px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--ink2);
+  border: 1px solid var(--line);
+  border-radius: var(--r3);
+  padding: 16px;
+  overflow: hidden;
+}
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 13px;
+}
+.card-title { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--dust); font-family: var(--mono); }
+.tag { font-size: 9px; padding: 2px 8px; border-radius: 20px; font-family: var(--mono); font-weight: 500; }
+.tg { background: var(--lime2); color: var(--lime); }
+.tb { background: var(--sky2); color: var(--sky); }
+.ta { background: var(--amb2); color: var(--amber); }
+.tr { background: var(--rose2); color: var(--rose); }
+.tv { background: var(--vio2); color: var(--violet); }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; }
+.scroll-y { max-height: 390px; overflow-y: auto; }
+.scroll-y::-webkit-scrollbar { width: 3px; }
+.scroll-y::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 2px; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 7px 12px;
+  text-align: left;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ghost);
+  font-family: var(--mono);
+  font-weight: 500;
+  border-bottom: 1px solid var(--line);
+  background: var(--ink3);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+th:hover { color: var(--dust); }
+td { padding: 7px 12px; border-bottom: 1px solid var(--line); font-size: 12px; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,.025); }
+.mono { font-family: var(--mono); font-size: 11px; }
+
+/* ── STATUS DOTS ── */
+.sdot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 5px; }
+
+/* ── MINI BAR ── */
+.mb-wrap { display: flex; align-items: center; gap: 8px; }
+.mb { height: 4px; border-radius: 2px; background: rgba(255,255,255,.07); overflow: hidden; flex-shrink: 0; }
+.mb-fill { height: 100%; border-radius: 2px; }
+
+/* ── BADGE ── */
+.bdg { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 9px; font-weight: 500; white-space: nowrap; }
+.bdg-l  { background: var(--lime2); color: var(--lime); }
+.bdg-s  { background: var(--sky2);  color: var(--sky); }
+.bdg-a  { background: var(--amb2);  color: var(--amber); }
+.bdg-v  { background: var(--vio2);  color: var(--violet); }
+.bdg-gr { background: rgba(255,255,255,.07); color: var(--dust); }
+
+/* ── SPARK ── */
+.spk { display: inline-flex; align-items: flex-end; gap: 2px; height: 22px; vertical-align: middle; }
+.spk-b { width: 4px; border-radius: 1px; min-height: 2px; }
+
+/* ── MOM ARROW ── */
+.up  { color: var(--lime); font-family: var(--mono); font-size: 10px; }
+.dn  { color: var(--rose); font-family: var(--mono); font-size: 10px; }
+.flat{ color: var(--ghost); font-family: var(--mono); font-size: 10px; }
+
+/* ── STATUS STACK ── */
+.ss { display: flex; flex-direction: column; gap: 7px; }
+.ss-row { display: flex; align-items: center; gap: 9px; font-size: 11px; }
+.ss-lbl { flex: 1.2; color: var(--dust); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ss-bar { flex: 2; height: 4px; border-radius: 2px; background: rgba(255,255,255,.06); overflow: hidden; }
+.ss-f { height: 100%; border-radius: 2px; transition: width .5s ease; }
+.ss-n { font-family: var(--mono); font-size: 10px; color: var(--white); text-align: right; min-width: 42px; }
+.ss-p { font-family: var(--mono); font-size: 9px; color: var(--ghost); min-width: 34px; text-align: right; }
+
+/* ── GAUGE ── */
+.gauge-row { display: flex; flex-direction: column; gap: 8px; }
+.gauge-item .gl { font-size: 10px; color: var(--dust); margin-bottom: 3px; display: flex; justify-content: space-between; }
+.gauge-track { height: 5px; border-radius: 3px; background: rgba(255,255,255,.06); overflow: hidden; }
+.gauge-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+
+/* ── SEARCH ── */
+input[type=text] {
+  background: var(--ink3);
+  border: 1px solid var(--line2);
+  color: var(--snow);
+  padding: 5px 10px;
+  border-radius: var(--r);
+  font-family: var(--sans);
+  font-size: 11px;
+  outline: none;
+}
+input[type=text]:focus { border-color: rgba(163,230,53,.4); }
+
+/* FOOTER */
+footer { padding: 14px 28px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; }
+.ft { font-size: 10px; color: var(--ghost); font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">FFM/OB</span>
+    <div class="brand-rule"></div>
+    <span class="brand-tag">order dashboard · T1–T5 2026</span>
+  </div>
+  <div class="topbar-right">
+    <span class="chip chip-lime"><span class="pulse"></span>92,585 orders</span>
+    <span class="chip chip-sky">22 clients · 4 markets</span>
+  </div>
+</header>
+
+<!-- FILTERS -->
+<div class="filters">
+  <span class="fl">Market</span>
+  <div class="seggroup" id="mktSeg">
+    <button class="seg on" data-v="all"       onclick="setMkt(this)">Tất cả</button>
+    <button class="seg"    data-v="Thái Lan"  onclick="setMkt(this)">🇹🇭 TH</button>
+    <button class="seg"    data-v="Campuchia" onclick="setMkt(this)">🇰🇭 KH</button>
+    <button class="seg"    data-v="Lào"       onclick="setMkt(this)">🇱🇦 LA</button>
+    <button class="seg"    data-v="Malaysia"  onclick="setMkt(this)">🇲🇾 MY</button>
+  </div>
+  <div class="vsep"></div>
+  <span class="fl">Client</span>
+  <select id="clSel" onchange="render()">
+    <option value="all">Tất cả</option>
+  </select>
+  <div class="vsep"></div>
+  <span class="fl">Chỉ số</span>
+  <div class="seggroup" id="metSeg">
+    <button class="seg on" data-v="orders"  onclick="setMet(this)">Đơn hàng</button>
+    <button class="seg"    data-v="deliver" onclick="setMet(this)">Giao</button>
+    <button class="seg"    data-v="return"  onclick="setMet(this)">Hoàn</button>
+  </div>
+  <div class="vsep"></div>
+  <button class="btn-export" onclick="doCSV()">↓ Export CSV</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--lime)"></div>
+      <div class="kl">Tổng đơn hàng</div>
+      <div class="kv" id="kv0" style="color:var(--lime)">—</div>
+      <div class="ks" id="ks0">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--cyan)"></div>
+      <div class="kl">Giao thành công</div>
+      <div class="kv" id="kv1" style="color:var(--cyan)">—</div>
+      <div class="ks" id="ks1">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--rose)"></div>
+      <div class="kl">Hoàn hàng</div>
+      <div class="kv" id="kv2" style="color:var(--rose)">—</div>
+      <div class="ks" id="ks2">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--amber)"></div>
+      <div class="kl">Avg đơn / ngày</div>
+      <div class="kv" id="kv3" style="color:var(--amber)">—</div>
+      <div class="ks" id="ks3">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--violet)"></div>
+      <div class="kl">MoM T4 → T5</div>
+      <div class="kv" id="kv4" style="color:var(--violet)">—</div>
+      <div class="ks" id="ks4">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--sky)"></div>
+      <div class="kl">Client active T5</div>
+      <div class="kv" id="kv5" style="color:var(--sky)">—</div>
+      <div class="ks" id="ks5">—</div>
+    </div>
+  </div>
+
+  <!-- TREND + MARKET -->
+  <div class="slbl">Xu hướng đơn hàng theo tháng</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title" id="ct0">Đơn hàng T1–T5 — tất cả</span>
+        <span class="tag tb" id="ctag0">—</span>
+      </div>
+      <div id="trLeg" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:10px;color:var(--dust)"></div>
+      <div style="position:relative;height:200px"><canvas id="trendC"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Phân bổ thị trường (stacked)</span>
+        <span class="tag tg">4 markets</span>
+      </div>
+      <div style="position:relative;height:218px"><canvas id="mktC"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DAILY + WEEKLY -->
+  <div class="slbl">Biểu đồ hàng ngày & hàng tuần</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Đơn hàng theo ngày (T1–T5)</span>
+        <span class="tag tg">128 ngày</span>
+      </div>
+      <div style="position:relative;height:160px"><canvas id="dailyC"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Đơn hàng theo tuần (W1–W22)</span>
+        <span class="tag tb">22 tuần</span>
+      </div>
+      <div style="position:relative;height:160px"><canvas id="weekC"></canvas></div>
+    </div>
+  </div>
+
+  <!-- STATUS + CARRIER + DELIVERY RATE -->
+  <div class="slbl">Trạng thái & vận chuyển</div>
+  <div class="g3">
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Trạng thái đơn hàng</span>
+        <span class="tag ta" id="stTag">92,585 đơn</span>
+      </div>
+      <div id="ssStack" class="ss"></div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Carrier / Đơn vị vận chuyển</span>
+        <span class="tag tg">11 carriers</span>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="carrC"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Tỷ lệ giao thành công (%)</span>
+        <span class="tag tg" id="drTag">top 8</span>
+      </div>
+      <div id="drGauge" class="gauge-row" style="margin-top:4px"></div>
+    </div>
+  </div>
+
+  <!-- RANK TABLE + PIE + RETURN -->
+  <div class="slbl">Hiệu quả từng client</div>
+  <div class="g3">
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Bảng xếp hạng</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="text" id="rkSearch" placeholder="Tìm client..." oninput="renderRank()" style="width:120px">
+          <span class="tag tb" id="rkCnt">—</span>
+        </div>
+      </div>
+      <div class="tbl-wrap scroll-y">
+        <table>
+          <thead><tr>
+            <th onclick="srt('rank')">#</th>
+            <th onclick="srt('client')">Client</th>
+            <th onclick="srt('mkt')">TT</th>
+            <th onclick="srt('orders')">Đơn ▼</th>
+            <th onclick="srt('t5')">T5</th>
+            <th>Trend</th>
+            <th onclick="srt('mom')">MoM</th>
+            <th onclick="srt('drate')">Giao%</th>
+            <th onclick="srt('rrate')">Hoàn%</th>
+          </tr></thead>
+          <tbody id="rkBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Tỷ trọng đơn hàng</span>
+        <span class="tag ta" id="pieTag">top 8</span>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="pieC"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <span class="card-title">Tỷ lệ hoàn hàng (%)</span>
+        <span class="tag tr">ranked</span>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="retC"></canvas></div>
+    </div>
+  </div>
+
+  <!-- MONTHLY DETAIL TABLE -->
+  <div class="slbl">Chi tiết T1–T5 theo client</div>
+  <div class="card">
+    <div class="card-top">
+      <span class="card-title">Bảng tổng hợp theo tháng</span>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="tblQ" placeholder="Lọc..." oninput="renderDT()" style="width:140px">
+        <button class="btn-export" onclick="doCSV()">↓ CSV</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr id="dtHead"></tr></thead>
+        <tbody id="dtBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span class="ft">FFM Order Dashboard · 92,585 unique orders · 173,707 line items · T1–T5 2026</span>
+  <span class="ft" id="ftNote">—</span>
+</footer>
+
+<script>
+// ════════════ DATA ════════════
+const DATA = {
+  "mkt_month": {
+    "Campuchia": [
+      1018,
+      499,
+      899,
+      1475,
+      1000
+    ],
+    "Thái Lan": [
+      21950,
+      15587,
+      14669,
+      13484,
+      10320
+    ],
+    "Malaysia": [
+      2140,
+      871,
+      1618,
+      1650,
+      1128
+    ],
+    "Lào": [
+      0,
+      0,
+      535,
+      2230,
+      1512
+    ]
+  },
+  "carrier_month": {
+    "J&T": [
+      13284,
+      9248,
+      9854,
+      9143,
+      5211
+    ],
+    "Flash": [
+      0,
+      1441,
+      3810,
+      4460,
+      4689
+    ],
+    "Kerry": [
+      8027,
+      5397,
+      1904,
+      1356,
+      1420
+    ],
+    "NJV": [
+      1846,
+      777,
+      1488,
+      1552,
+      1038
+    ],
+    "POS Laju": [
+      257,
+      94,
+      130,
+      98,
+      90
+    ],
+    "Anousith": [
+      0,
+      0,
+      427,
+      1777,
+      1041
+    ],
+    "HAL": [
+      0,
+      0,
+      108,
+      447,
+      324
+    ],
+    "Mixay Express": [
+      0,
+      0,
+      0,
+      6,
+      11
+    ],
+    "Unitel": [
+      0,
+      0,
+      0,
+      0,
+      135
+    ],
+    "System Carrier": [
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "Miaoshou": [
+      1694,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "carrier_by_market": {
+    "Campuchia": [
+      "J&T"
+    ],
+    "Thái Lan": [
+      "Flash",
+      "J&T",
+      "Kerry",
+      "Miaoshou"
+    ],
+    "Malaysia": [
+      "Miaoshou",
+      "NJV",
+      "POS Laju"
+    ],
+    "Lào": [
+      "Anousith",
+      "HAL",
+      "Mixay Express",
+      "System Carrier",
+      "Unitel"
+    ]
+  },
+  "weekly": [
+    2032,
+    6362,
+    6106,
+    5112,
+    5496,
+    5501,
+    3197,
+    3805,
+    4454,
+    4301,
+    3947,
+    3231,
+    4308,
+    4436,
+    4226,
+    4153,
+    3949,
+    5044,
+    4285,
+    3455,
+    3252,
+    1933
+  ],
+  "daily": [
+    {
+      "d": "2026-01-02",
+      "n": 1053
+    },
+    {
+      "d": "2026-01-03",
+      "n": 979
+    },
+    {
+      "d": "2026-01-05",
+      "n": 1684
+    },
+    {
+      "d": "2026-01-06",
+      "n": 1042
+    },
+    {
+      "d": "2026-01-07",
+      "n": 1279
+    },
+    {
+      "d": "2026-01-08",
+      "n": 897
+    },
+    {
+      "d": "2026-01-09",
+      "n": 761
+    },
+    {
+      "d": "2026-01-10",
+      "n": 699
+    },
+    {
+      "d": "2026-01-12",
+      "n": 1367
+    },
+    {
+      "d": "2026-01-13",
+      "n": 985
+    },
+    {
+      "d": "2026-01-14",
+      "n": 834
+    },
+    {
+      "d": "2026-01-15",
+      "n": 799
+    },
+    {
+      "d": "2026-01-16",
+      "n": 1433
+    },
+    {
+      "d": "2026-01-17",
+      "n": 688
+    },
+    {
+      "d": "2026-01-19",
+      "n": 1613
+    },
+    {
+      "d": "2026-01-20",
+      "n": 790
+    },
+    {
+      "d": "2026-01-21",
+      "n": 699
+    },
+    {
+      "d": "2026-01-22",
+      "n": 679
+    },
+    {
+      "d": "2026-01-23",
+      "n": 695
+    },
+    {
+      "d": "2026-01-24",
+      "n": 636
+    },
+    {
+      "d": "2026-01-26",
+      "n": 1242
+    },
+    {
+      "d": "2026-01-27",
+      "n": 1519
+    },
+    {
+      "d": "2026-01-28",
+      "n": 700
+    },
+    {
+      "d": "2026-01-29",
+      "n": 746
+    },
+    {
+      "d": "2026-01-30",
+      "n": 665
+    },
+    {
+      "d": "2026-01-31",
+      "n": 624
+    },
+    {
+      "d": "2026-02-02",
+      "n": 1815
+    },
+    {
+      "d": "2026-02-03",
+      "n": 766
+    },
+    {
+      "d": "2026-02-04",
+      "n": 721
+    },
+    {
+      "d": "2026-02-05",
+      "n": 982
+    },
+    {
+      "d": "2026-02-06",
+      "n": 601
+    },
+    {
+      "d": "2026-02-07",
+      "n": 616
+    },
+    {
+      "d": "2026-02-09",
+      "n": 888
+    },
+    {
+      "d": "2026-02-10",
+      "n": 548
+    },
+    {
+      "d": "2026-02-11",
+      "n": 654
+    },
+    {
+      "d": "2026-02-12",
+      "n": 510
+    },
+    {
+      "d": "2026-02-13",
+      "n": 447
+    },
+    {
+      "d": "2026-02-14",
+      "n": 150
+    },
+    {
+      "d": "2026-02-16",
+      "n": 889
+    },
+    {
+      "d": "2026-02-17",
+      "n": 429
+    },
+    {
+      "d": "2026-02-18",
+      "n": 790
+    },
+    {
+      "d": "2026-02-19",
+      "n": 495
+    },
+    {
+      "d": "2026-02-20",
+      "n": 800
+    },
+    {
+      "d": "2026-02-21",
+      "n": 402
+    },
+    {
+      "d": "2026-02-23",
+      "n": 1175
+    },
+    {
+      "d": "2026-02-24",
+      "n": 696
+    },
+    {
+      "d": "2026-02-25",
+      "n": 635
+    },
+    {
+      "d": "2026-02-26",
+      "n": 657
+    },
+    {
+      "d": "2026-02-27",
+      "n": 638
+    },
+    {
+      "d": "2026-02-28",
+      "n": 653
+    },
+    {
+      "d": "2026-03-02",
+      "n": 1129
+    },
+    {
+      "d": "2026-03-03",
+      "n": 94
+    },
+    {
+      "d": "2026-03-04",
+      "n": 1105
+    },
+    {
+      "d": "2026-03-05",
+      "n": 712
+    },
+    {
+      "d": "2026-03-06",
+      "n": 652
+    },
+    {
+      "d": "2026-03-07",
+      "n": 609
+    },
+    {
+      "d": "2026-03-09",
+      "n": 1030
+    },
+    {
+      "d": "2026-03-10",
+      "n": 568
+    },
+    {
+      "d": "2026-03-11",
+      "n": 693
+    },
+    {
+      "d": "2026-03-12",
+      "n": 562
+    },
+    {
+      "d": "2026-03-13",
+      "n": 590
+    },
+    {
+      "d": "2026-03-14",
+      "n": 504
+    },
+    {
+      "d": "2026-03-16",
+      "n": 888
+    },
+    {
+      "d": "2026-03-17",
+      "n": 503
+    },
+    {
+      "d": "2026-03-18",
+      "n": 448
+    },
+    {
+      "d": "2026-03-19",
+      "n": 614
+    },
+    {
+      "d": "2026-03-20",
+      "n": 472
+    },
+    {
+      "d": "2026-03-21",
+      "n": 306
+    },
+    {
+      "d": "2026-03-23",
+      "n": 879
+    },
+    {
+      "d": "2026-03-24",
+      "n": 490
+    },
+    {
+      "d": "2026-03-25",
+      "n": 402
+    },
+    {
+      "d": "2026-03-26",
+      "n": 1107
+    },
+    {
+      "d": "2026-03-27",
+      "n": 966
+    },
+    {
+      "d": "2026-03-28",
+      "n": 464
+    },
+    {
+      "d": "2026-03-30",
+      "n": 1080
+    },
+    {
+      "d": "2026-03-31",
+      "n": 854
+    },
+    {
+      "d": "2026-04-01",
+      "n": 710
+    },
+    {
+      "d": "2026-04-02",
+      "n": 558
+    },
+    {
+      "d": "2026-04-03",
+      "n": 676
+    },
+    {
+      "d": "2026-04-04",
+      "n": 558
+    },
+    {
+      "d": "2026-04-06",
+      "n": 1195
+    },
+    {
+      "d": "2026-04-07",
+      "n": 756
+    },
+    {
+      "d": "2026-04-08",
+      "n": 686
+    },
+    {
+      "d": "2026-04-09",
+      "n": 590
+    },
+    {
+      "d": "2026-04-10",
+      "n": 532
+    },
+    {
+      "d": "2026-04-11",
+      "n": 467
+    },
+    {
+      "d": "2026-04-12",
+      "n": 257
+    },
+    {
+      "d": "2026-04-13",
+      "n": 213
+    },
+    {
+      "d": "2026-04-14",
+      "n": 56
+    },
+    {
+      "d": "2026-04-15",
+      "n": 73
+    },
+    {
+      "d": "2026-04-16",
+      "n": 1577
+    },
+    {
+      "d": "2026-04-17",
+      "n": 1397
+    },
+    {
+      "d": "2026-04-18",
+      "n": 580
+    },
+    {
+      "d": "2026-04-20",
+      "n": 1086
+    },
+    {
+      "d": "2026-04-21",
+      "n": 565
+    },
+    {
+      "d": "2026-04-22",
+      "n": 609
+    },
+    {
+      "d": "2026-04-23",
+      "n": 498
+    },
+    {
+      "d": "2026-04-24",
+      "n": 660
+    },
+    {
+      "d": "2026-04-25",
+      "n": 531
+    },
+    {
+      "d": "2026-04-27",
+      "n": 1031
+    },
+    {
+      "d": "2026-04-28",
+      "n": 1776
+    },
+    {
+      "d": "2026-04-29",
+      "n": 625
+    },
+    {
+      "d": "2026-04-30",
+      "n": 577
+    },
+    {
+      "d": "2026-05-01",
+      "n": 35
+    },
+    {
+      "d": "2026-05-02",
+      "n": 1000
+    },
+    {
+      "d": "2026-05-04",
+      "n": 965
+    },
+    {
+      "d": "2026-05-05",
+      "n": 631
+    },
+    {
+      "d": "2026-05-06",
+      "n": 644
+    },
+    {
+      "d": "2026-05-07",
+      "n": 695
+    },
+    {
+      "d": "2026-05-08",
+      "n": 703
+    },
+    {
+      "d": "2026-05-09",
+      "n": 647
+    },
+    {
+      "d": "2026-05-11",
+      "n": 1013
+    },
+    {
+      "d": "2026-05-12",
+      "n": 581
+    },
+    {
+      "d": "2026-05-13",
+      "n": 478
+    },
+    {
+      "d": "2026-05-14",
+      "n": 466
+    },
+    {
+      "d": "2026-05-15",
+      "n": 524
+    },
+    {
+      "d": "2026-05-16",
+      "n": 393
+    },
+    {
+      "d": "2026-05-17",
+      "n": 47
+    },
+    {
+      "d": "2026-05-18",
+      "n": 854
+    },
+    {
+      "d": "2026-05-19",
+      "n": 508
+    },
+    {
+      "d": "2026-05-20",
+      "n": 474
+    },
+    {
+      "d": "2026-05-21",
+      "n": 490
+    },
+    {
+      "d": "2026-05-22",
+      "n": 532
+    },
+    {
+      "d": "2026-05-23",
+      "n": 347
+    },
+    {
+      "d": "2026-05-25",
+      "n": 888
+    },
+    {
+      "d": "2026-05-26",
+      "n": 465
+    },
+    {
+      "d": "2026-05-27",
+      "n": 453
+    },
+    {
+      "d": "2026-05-28",
+      "n": 127
+    }
+  ],
+  "status_all": {
+    "Delivered": 80181,
+    "ReturnedStocked": 10191,
+    "InTransit": 1064,
+    "InDelivery": 337,
+    "InReturn": 160,
+    "Stocked3PL": 147,
+    "FailedDelivery": 146,
+    "LostBy3PL": 138,
+    "PickedUp3PL": 127,
+    "LostCompleted": 68,
+    "Returned": 21,
+    "AwaitingReturn": 3,
+    "ReturnedDamagedBy3PL": 2
+  },
+  "clients": {
+    "Bigwave": {
+      "o": [
+        69,
+        6,
+        0,
+        0,
+        0
+      ],
+      "d": [
+        62,
+        3,
+        0,
+        0,
+        0
+      ],
+      "r": [
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    },
+    "CareX": {
+      "o": [
+        2188,
+        1585,
+        1682,
+        1361,
+        1279
+      ],
+      "d": [
+        2039,
+        1477,
+        1565,
+        1255,
+        1083
+      ],
+      "r": [
+        144,
+        104,
+        106,
+        102,
+        49
+      ],
+      "mkt": [
+        "Lào",
+        "Malaysia",
+        "Thái Lan"
+      ]
+    },
+    "DLE": {
+      "o": [
+        260,
+        0,
+        0,
+        0,
+        0
+      ],
+      "d": [
+        207,
+        0,
+        0,
+        0,
+        0
+      ],
+      "r": [
+        51,
+        0,
+        0,
+        0,
+        0
+      ],
+      "mkt": [
+        "Malaysia"
+      ]
+    },
+    "DLE CS": {
+      "o": [
+        236,
+        191,
+        288,
+        272,
+        188
+      ],
+      "d": [
+        203,
+        168,
+        245,
+        233,
+        146
+      ],
+      "r": [
+        33,
+        23,
+        43,
+        39,
+        20
+      ],
+      "mkt": [
+        "Malaysia"
+      ]
+    },
+    "Dương Linh": {
+      "o": [
+        1693,
+        865,
+        1773,
+        1972,
+        1525
+      ],
+      "d": [
+        1456,
+        730,
+        1480,
+        1666,
+        1204
+      ],
+      "r": [
+        234,
+        133,
+        284,
+        298,
+        210
+      ],
+      "mkt": [
+        "Malaysia",
+        "Thái Lan"
+      ]
+    },
+    "ECommerce": {
+      "o": [
+        1243,
+        0,
+        0,
+        0,
+        0
+      ],
+      "d": [
+        923,
+        0,
+        0,
+        0,
+        0
+      ],
+      "r": [
+        12,
+        0,
+        0,
+        0,
+        0
+      ],
+      "mkt": [
+        "Malaysia",
+        "Thái Lan"
+      ]
+    },
+    "EZCOM": {
+      "o": [
+        21,
+        251,
+        1113,
+        2970,
+        1583
+      ],
+      "d": [
+        18,
+        234,
+        1067,
+        2836,
+        1455
+      ],
+      "r": [
+        3,
+        17,
+        37,
+        122,
+        39
+      ],
+      "mkt": [
+        "Malaysia",
+        "Thái Lan"
+      ]
+    },
+    "GMO": {
+      "o": [
+        3,
+        0,
+        0,
+        6,
+        0
+      ],
+      "d": [
+        3,
+        0,
+        0,
+        4,
+        0
+      ],
+      "r": [
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "mkt": [
+        "Malaysia"
+      ]
+    },
+    "GTeam": {
+      "o": [
+        6,
+        0,
+        0,
+        0,
+        0
+      ],
+      "d": [
+        4,
+        0,
+        0,
+        0,
+        0
+      ],
+      "r": [
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "mkt": [
+        "Malaysia"
+      ]
+    },
+    "Happy Life Global": {
+      "o": [
+        214,
+        80,
+        0,
+        0,
+        0
+      ],
+      "d": [
+        183,
+        64,
+        0,
+        0,
+        0
+      ],
+      "r": [
+        31,
+        16,
+        0,
+        0,
+        0
+      ],
+      "mkt": [
+        "Malaysia"
+      ]
+    },
+    "JIVI": {
+      "o": [
+        37,
+        48,
+        49,
+        33,
+        26
+      ],
+      "d": [
+        36,
+        47,
+        46,
+        33,
+        26
+      ],
+      "r": [
+        1,
+        1,
+        3,
+        0,
+        0
+      ],
+      "mkt": [
+        "Malaysia"
+      ]
+    },
+    "KMA": {
+      "o": [
+        2913,
+        2419,
+        2765,
+        2848,
+        3366
+      ],
+      "d": [
+        2651,
+        2219,
+        2504,
+        2634,
+        2810
+      ],
+      "r": [
+        218,
+        195,
+        252,
+        211,
+        151
+      ],
+      "mkt": [
+        "Lào",
+        "Thái Lan"
+      ]
+    },
+    "LQT": {
+      "o": [
+        1535,
+        1413,
+        1503,
+        2358,
+        1352
+      ],
+      "d": [
+        1398,
+        1314,
+        1392,
+        2138,
+        1133
+      ],
+      "r": [
+        131,
+        96,
+        107,
+        217,
+        90
+      ],
+      "mkt": [
+        "Campuchia",
+        "Lào",
+        "Thái Lan"
+      ]
+    },
+    "MIK": {
+      "o": [
+        284,
+        251,
+        113,
+        1,
+        0
+      ],
+      "d": [
+        247,
+        183,
+        95,
+        1,
+        0
+      ],
+      "r": [
+        35,
+        66,
+        18,
+        0,
+        0
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    },
+    "Midas": {
+      "o": [
+        194,
+        75,
+        75,
+        1,
+        0
+      ],
+      "d": [
+        146,
+        64,
+        64,
+        1,
+        0
+      ],
+      "r": [
+        3,
+        11,
+        11,
+        0,
+        0
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    },
+    "NARU Shop": {
+      "o": [
+        338,
+        356,
+        316,
+        291,
+        265
+      ],
+      "d": [
+        306,
+        320,
+        280,
+        259,
+        196
+      ],
+      "r": [
+        32,
+        33,
+        34,
+        31,
+        13
+      ],
+      "mkt": [
+        "Campuchia",
+        "Malaysia",
+        "Thái Lan"
+      ]
+    },
+    "Pharmatech-THA": {
+      "o": [
+        8,
+        0,
+        0,
+        0,
+        0
+      ],
+      "d": [
+        7,
+        0,
+        0,
+        0,
+        0
+      ],
+      "r": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    },
+    "Phong Thuỷ 99": {
+      "o": [
+        4354,
+        2539,
+        2780,
+        1385,
+        1081
+      ],
+      "d": [
+        3390,
+        1918,
+        2095,
+        985,
+        769
+      ],
+      "r": [
+        949,
+        615,
+        680,
+        394,
+        201
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    },
+    "SKY-AGENCY": {
+      "o": [
+        7202,
+        4262,
+        4786,
+        5028,
+        3164
+      ],
+      "d": [
+        6366,
+        3888,
+        4314,
+        4442,
+        2604
+      ],
+      "r": [
+        821,
+        364,
+        467,
+        578,
+        221
+      ],
+      "mkt": [
+        "Campuchia",
+        "Lào",
+        "Thái Lan"
+      ]
+    },
+    "SKYWARD02": {
+      "o": [
+        1887,
+        2319,
+        284,
+        172,
+        3
+      ],
+      "d": [
+        1548,
+        1811,
+        230,
+        143,
+        3
+      ],
+      "r": [
+        333,
+        501,
+        52,
+        28,
+        0
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    },
+    "STAREK": {
+      "o": [
+        423,
+        294,
+        193,
+        141,
+        128
+      ],
+      "d": [
+        402,
+        282,
+        182,
+        133,
+        109
+      ],
+      "r": [
+        21,
+        10,
+        11,
+        8,
+        5
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    },
+    "TMAX": {
+      "o": [
+        0,
+        3,
+        1,
+        0,
+        0
+      ],
+      "d": [
+        0,
+        3,
+        1,
+        0,
+        0
+      ],
+      "r": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "mkt": [
+        "Thái Lan"
+      ]
+    }
+  },
+  "MKT_COLOR": {
+    "Campuchia": "#38bdf8",
+    "Thái Lan": "#a3e635",
+    "Malaysia": "#fbbf24",
+    "Lào": "#a78bfa"
+  },
+  "CL_COLORS": [
+    "#38bdf8",
+    "#a3e635",
+    "#fbbf24",
+    "#fb7185",
+    "#a78bfa",
+    "#22d3ee",
+    "#f97316",
+    "#4ade80",
+    "#818cf8",
+    "#e879f9",
+    "#facc15",
+    "#34d399",
+    "#c084fc",
+    "#f472b6",
+    "#60a5fa",
+    "#fb923c"
+  ],
+  "ML": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5"
+  ]
+};
+
+// ════════════ STATE ════════════
+let ST = { mkt:"all", cl:"all", met:"orders" };
+let rkSort = { col:"orders", dir:-1 };
+let CH = {};
+
+// ════════════ HELPERS ════════════
+const fmt  = n => n >= 10000 ? (n/1000).toFixed(1)+"K" : n.toLocaleString("vi-VN");
+const fmtF = n => n.toLocaleString("vi-VN");
+const pct  = (a,b) => b ? Math.round((a-b)/b*100) : 0;
+const arr  = p => p > 5 ? `<span class="up">▲+${p}%</span>` : p < -5 ? `<span class="dn">▼${p}%</span>` : `<span class="flat">≈${p}%</span>`;
+const esc  = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function kill(id){ if(CH[id]){ CH[id].destroy(); delete CH[id]; } }
+
+const CHART_OPT = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: "#1f2436",
+      borderColor: "rgba(255,255,255,.13)",
+      borderWidth: 1,
+      titleColor: "#e8eaf3",
+      bodyColor: "#8b92ad",
+      padding: 10
+    }
+  }
+};
+
+// Filter clients for a market
+function clsFor(mkt) {
+  if(mkt === "all") return Object.keys(DATA.clients);
+  return Object.keys(DATA.clients).filter(c => DATA.clients[c].mkt.includes(mkt));
+}
+
+// Get value array [T1..T5] for a client+market, prop = o/d/r
+function clArr(cl, mkt, prop) {
+  const row = DATA.clients[cl];
+  if(!row) return [0,0,0,0,0];
+  if(mkt !== "all" && !row.mkt.includes(mkt)) return [0,0,0,0,0];
+  return row[prop];
+}
+
+// Total for client in a market
+function clTot(cl, mkt, prop="o") { return clArr(cl, mkt, prop).reduce((s,v)=>s+v,0); }
+
+// Monthly totals for all clients in market
+function mktTotals(mkt, prop="o") {
+  return [0,1,2,3,4].map(i => clsFor(mkt).reduce((s,c) => s + clArr(c,mkt,prop)[i], 0));
+}
+
+// Market badge
+function mktBdg(mkts) {
+  const MAP = {"Thái Lan":["l","TH"],"Campuchia":["s","KH"],"Lào":["a","LA"],"Malaysia":["v","MY"]};
+  return mkts.map(m => `<span class="bdg bdg-${(MAP[m]||["gr","?"])[0]}">${(MAP[m]||["gr","?"])[1]}</span>`).join(" ");
+}
+
+// Spark
+function spark(arr, mom) {
+  const mx = Math.max(...arr, 1);
+  return '<div class="spk">' + arr.map((v,i) => {
+    const h = Math.max(2, Math.round(v/mx*20));
+    const c = i===4 ? (mom>=0?"var(--lime)":"var(--rose)") : "var(--ghost)";
+    return `<div class="spk-b" style="height:${h}px;background:${c}"></div>`;
+  }).join("") + "</div>";
+}
+
+// ════════════ CONTROLS ════════════
+function setMkt(btn) {
+  ST.mkt = btn.dataset.v;
+  document.querySelectorAll("#mktSeg .seg").forEach(b => b.classList.toggle("on", b===btn));
+  rebuildClSel(); render();
+}
+function setMet(btn) {
+  ST.met = btn.dataset.v;
+  document.querySelectorAll("#metSeg .seg").forEach(b => b.classList.toggle("on", b===btn));
+  render();
+}
+function rebuildClSel() {
+  const sel = document.getElementById("clSel");
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">Tất cả</option>';
+  clsFor(ST.mkt).sort().forEach(c => {
+    const o = document.createElement("option");
+    o.value = c; o.textContent = c;
+    if(c === prev) o.selected = true;
+    sel.appendChild(o);
+  });
+  ST.cl = clsFor(ST.mkt).includes(prev) ? prev : "all";
+}
+
+// ════════════ RENDER ════════════
+function render() {
+  ST.cl = document.getElementById("clSel").value;
+  const prop = ST.met === "orders" ? "o" : ST.met === "deliver" ? "d" : "r";
+  updateKPIs(prop);
+  renderTrend(prop);
+  renderMkt();
+  renderDaily();
+  renderWeekly();
+  renderStatus();
+  renderCarrier();
+  renderDR();
+  renderRank();
+  renderPie();
+  renderReturn();
+  renderDT(prop);
+  document.getElementById("ftNote").textContent = `mkt:${ST.mkt} · cl:${ST.cl} · met:${ST.met}`;
+}
+
+// ─ KPIs ─
+function updateKPIs(prop) {
+  const {mkt, cl} = ST;
+  const arr5 = cl==="all" ? mktTotals(mkt, prop) : clArr(cl, mkt, prop);
+  const total = arr5.reduce((s,v)=>s+v,0);
+  const arr_o = cl==="all" ? mktTotals(mkt,"o") : clArr(cl,mkt,"o");
+  const arr_d = cl==="all" ? mktTotals(mkt,"d") : clArr(cl,mkt,"d");
+  const arr_r = cl==="all" ? mktTotals(mkt,"r") : clArr(cl,mkt,"r");
+  const tot_o = arr_o.reduce((s,v)=>s+v,0);
+  const tot_d = arr_d.reduce((s,v)=>s+v,0);
+  const tot_r = arr_r.reduce((s,v)=>s+v,0);
+  const drRate = tot_o ? (tot_d/tot_o*100).toFixed(1) : 0;
+  const rrRate = tot_o ? (tot_r/tot_o*100).toFixed(1) : 0;
+  const momV = pct(arr_o[4], arr_o[3]);
+  const activeT5 = clsFor(mkt).filter(c => clArr(c,mkt,"o")[4] > 0).length;
+  const dailyAvg = Math.round(tot_o / 128);
+
+  const set = (i, v, s) => { document.getElementById("kv"+i).textContent=v; document.getElementById("ks"+i).textContent=s; };
+  set(0, fmt(tot_o),   clsFor(mkt).length + " clients · T1–T5");
+  set(1, fmt(tot_d),   drRate + "% tỷ lệ giao");
+  set(2, rrRate + "%", fmtF(tot_r) + " đơn hoàn");
+  set(3, dailyAvg.toLocaleString(), "đơn / ngày avg");
+  set(4, (momV>=0?"+":"")+momV+"%", fmt(arr_o[3]) + " → " + fmt(arr_o[4]));
+  set(5, activeT5,     "clients có đơn T5");
+}
+
+// ─ TREND CHART ─
+function renderTrend(prop) {
+  kill("trend");
+  const {mkt, cl} = ST;
+  let datasets = [];
+
+  if(cl !== "all") {
+    const data = clArr(cl, mkt, prop);
+    datasets = [{label:cl, data, borderColor:"#38bdf8", backgroundColor:"rgba(56,189,248,.1)", fill:true, tension:.35, pointRadius:4, borderWidth:2}];
+    document.getElementById("ct0").textContent = cl;
+    document.getElementById("ctag0").textContent = fmt(data.reduce((s,v)=>s+v,0)) + (prop==="o"?" đơn":"%");
+  } else if(mkt !== "all") {
+    const cls = clsFor(mkt).sort((a,b) => clTot(b,mkt,prop)-clTot(a,mkt,prop)).slice(0,7);
+    datasets = cls.map((c,i) => ({label:c, data:clArr(c,mkt,prop), borderColor:DATA.CL_COLORS[i%16], fill:false, tension:.35, pointRadius:3, borderWidth:1.8}));
+    const tot = mktTotals(mkt, prop).reduce((s,v)=>s+v,0);
+    document.getElementById("ct0").textContent = "Đơn hàng: " + mkt;
+    document.getElementById("ctag0").textContent = fmt(tot) + (prop==="o"?" đơn":"");
+  } else {
+    const mkts = ["Thái Lan","Campuchia","Lào","Malaysia"];
+    datasets = mkts.map(m => ({label:m, data:DATA.mkt_month[m], borderColor:DATA.MKT_COLOR[m], fill:false, tension:.35, pointRadius:4, borderWidth:2}));
+    document.getElementById("ct0").textContent = "Đơn hàng T1–T5 — tất cả thị trường";
+    document.getElementById("ctag0").textContent = fmtF(92585) + " đơn";
+  }
+
+  document.getElementById("trLeg").innerHTML = datasets.map(d =>
+    `<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${d.borderColor};flex-shrink:0"></span>${esc(d.label)}</span>`
+  ).join("");
+
+  CH.trend = new Chart(document.getElementById("trendC"), {
+    type:"line", data:{labels:DATA.ML, datasets},
+    options:{...CHART_OPT, interaction:{mode:"index",intersect:false},
+      plugins:{...CHART_OPT.plugins, tooltip:{...CHART_OPT.plugins.tooltip, callbacks:{label:c=>" "+c.dataset.label+": "+fmtF(c.raw)+(prop!=="o"?"":" đơn")}}},
+      scales:{
+        x:{grid:{color:"rgba(255,255,255,.05)"},ticks:{font:{size:11,family:"'DM Mono',monospace"}}},
+        y:{grid:{color:"rgba(255,255,255,.05)"},ticks:{callback:v=>fmt(v),font:{size:10,family:"'DM Mono',monospace"}}}
+      }
+    }
+  });
+}
+
+// ─ MARKET STACKED ─
+function renderMkt() {
+  kill("mkt");
+  const mkts = ["Thái Lan","Campuchia","Lào","Malaysia"];
+  CH.mkt = new Chart(document.getElementById("mktC"), {
+    type:"bar",
+    data:{labels:DATA.ML, datasets:mkts.map(m=>({label:m, data:DATA.mkt_month[m], backgroundColor:DATA.MKT_COLOR[m]+"bb", borderWidth:0, borderRadius:2}))},
+    options:{...CHART_OPT,
+      plugins:{...CHART_OPT.plugins, legend:{display:true, position:"bottom", labels:{boxWidth:9,padding:10,font:{size:9,family:"'DM Mono',monospace"},color:"#8b92ad"}}, tooltip:{...CHART_OPT.plugins.tooltip, callbacks:{label:c=>" "+c.dataset.label+": "+fmtF(c.raw)}}},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{font:{size:11,family:"'DM Mono',monospace"}}},
+        y:{stacked:true,grid:{color:"rgba(255,255,255,.05)"},ticks:{callback:v=>fmt(v),font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ─ DAILY ─
+function renderDaily() {
+  kill("daily");
+  const vals = DATA.daily.map(d=>d.n);
+  const avg = Math.round(vals.reduce((s,v)=>s+v,0)/vals.length);
+  CH.daily = new Chart(document.getElementById("dailyC"), {
+    type:"bar",
+    data:{
+      labels: DATA.daily.map(d=>d.d.slice(5)),
+      datasets:[{
+        data: vals,
+        backgroundColor: vals.map(v => v > avg*1.3 ? "rgba(163,230,53,.8)" : v < avg*0.5 ? "rgba(251,113,133,.6)" : "rgba(56,189,248,.5)"),
+        borderWidth:0, borderRadius:2
+      }]
+    },
+    options:{...CHART_OPT,
+      plugins:{...CHART_OPT.plugins, tooltip:{...CHART_OPT.plugins.tooltip, callbacks:{label:c=>" "+DATA.daily[c.dataIndex].d+": "+fmtF(c.raw)+" đơn"}}},
+      scales:{
+        x:{display:false},
+        y:{grid:{color:"rgba(255,255,255,.04)"},ticks:{callback:v=>fmt(v),font:{size:9,family:"'DM Mono',monospace"}}}
+      }
+    }
+  });
+}
+
+// ─ WEEKLY ─
+function renderWeekly() {
+  kill("weekly");
+  const avg = Math.round(DATA.weekly.reduce((s,v)=>s+v,0)/DATA.weekly.length);
+  CH.weekly = new Chart(document.getElementById("weekC"), {
+    type:"line",
+    data:{
+      labels: DATA.weekly.map((_,i)=>"W"+(i+1)),
+      datasets:[{
+        data: DATA.weekly,
+        borderColor:"#a78bfa",
+        backgroundColor:"rgba(167,139,250,.1)",
+        fill:true, tension:.35, pointRadius:2.5, borderWidth:2,
+        pointBackgroundColor: DATA.weekly.map(v => v > avg*1.2 ? "#a3e635" : v < avg*0.7 ? "#fb7185" : "#a78bfa")
+      }]
+    },
+    options:{...CHART_OPT,
+      plugins:{...CHART_OPT.plugins, tooltip:{...CHART_OPT.plugins.tooltip, callbacks:{label:c=>" W"+(c.dataIndex+1)+": "+fmtF(c.raw)+" đơn"}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:9,family:"'DM Mono',monospace"},maxRotation:0}},
+        y:{grid:{color:"rgba(255,255,255,.05)"},ticks:{callback:v=>fmt(v),font:{size:9,family:"'DM Mono',monospace"}}}
+      }
+    }
+  });
+}
+
+// ─ STATUS STACK ─
+function renderStatus() {
+  const {mkt, cl} = ST;
+  let st = {...DATA.status_all};
+  if(mkt!=="all" || cl!=="all") {
+    const tot_all = 92585;
+    const tot_filt = mktTotals(mkt,"o").reduce((s,v)=>s+v,0);
+    const ratio = tot_filt/tot_all;
+    st = Object.fromEntries(Object.entries(st).map(([k,v])=>[k,Math.round(v*ratio)]));
+  }
+  const total = Object.values(st).reduce((s,v)=>s+v,0);
+  document.getElementById("stTag").textContent = fmtF(total) + " đơn";
+  const SC = {"Delivered":"#a3e635","ReturnedStocked":"#fb7185","Returned":"#fb7185","InTransit":"#38bdf8","InDelivery":"#38bdf8","InReturn":"#fbbf24","LostBy3PL":"#fb7185","FailedDelivery":"#fb7185","Stocked3PL":"#8b92ad","PickedUp3PL":"#8b92ad","LostCompleted":"#fb7185","AwaitingReturn":"#fbbf24","ReturnedDamagedBy3PL":"#fb7185"};
+  const sorted = Object.entries(st).sort((a,b)=>b[1]-a[1]);
+  const mx = sorted[0][1];
+  document.getElementById("ssStack").innerHTML = sorted.map(([k,v]) =>
+    `<div class="ss-row">
+      <span class="ss-lbl"><span class="sdot" style="background:${SC[k]||"#3d445c"}"></span>${k}</span>
+      <div class="ss-bar"><div class="ss-f" style="width:${Math.round(v/mx*100)}%;background:${SC[k]||"#3d445c"}"></div></div>
+      <span class="ss-n">${fmt(v)}</span>
+      <span class="ss-p">${(v/total*100).toFixed(1)}%</span>
+    </div>`
+  ).join("");
+}
+
+// ─ CARRIER ─
+function renderCarrier() {
+  kill("carr");
+  const mkt = ST.mkt;
+  let carr = {};
+  if(mkt === "all") {
+    Object.values(DATA.carrier_month).forEach((arr,i) => {
+      const k = Object.keys(DATA.carrier_month)[i];
+      carr[k] = arr.reduce((s,v)=>s+v,0);
+    });
+  } else {
+    const carrMkt = {"Thái Lan":["J&T","Kerry","Flash","Miaoshou"],"Campuchia":["J&T"],"Lào":["Anousith","HAL","Unitel","Mixay Express","System Carrier"],"Malaysia":["NJV","POS Laju","Miaoshou"]};
+    (carrMkt[mkt]||[]).forEach(c => {
+      carr[c] = (DATA.carrier_month[c]||[0,0,0,0,0]).reduce((s,v)=>s+v,0);
+    });
+  }
+  const sorted = Object.entries(carr).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
+  CH.carr = new Chart(document.getElementById("carrC"), {
+    type:"bar",
+    data:{labels:sorted.map(e=>e[0]), datasets:[{data:sorted.map(e=>e[1]), backgroundColor:DATA.CL_COLORS.slice(0,sorted.length), borderRadius:3, borderWidth:0}]},
+    options:{...CHART_OPT, indexAxis:"y",
+      plugins:{...CHART_OPT.plugins, tooltip:{...CHART_OPT.plugins.tooltip, callbacks:{label:c=>" "+fmtF(c.raw)+" đơn"}}},
+      scales:{
+        x:{grid:{color:"rgba(255,255,255,.04)"},ticks:{callback:v=>fmt(v),font:{size:9,family:"'DM Mono',monospace"}}},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ─ DELIVERY RATE GAUGE ─
+function renderDR() {
+  const {mkt} = ST;
+  const cls = clsFor(mkt).map(c=>{
+    const o=clTot(c,mkt,"o"), d=clTot(c,mkt,"d");
+    return {c, rate: o>0?+(d/o*100).toFixed(1):0, orders:o};
+  }).filter(x=>x.orders>0).sort((a,b)=>b.rate-a.rate).slice(0,9);
+  document.getElementById("drTag").textContent = cls.length + " clients";
+  document.getElementById("drGauge").innerHTML = cls.map(x => {
+    const col = x.rate>=90?"#a3e635":x.rate>=80?"#fbbf24":"#fb7185";
+    return `<div class="gauge-item">
+      <div class="gl"><span>${esc(x.c)}</span><span style="font-family:var(--mono);font-size:10px;color:${col}">${x.rate}%</span></div>
+      <div class="gauge-track"><div class="gauge-fill" style="width:${x.rate}%;background:${col}"></div></div>
+    </div>`;
+  }).join("");
+}
+
+// ─ RANK TABLE ─
+function srt(col) { rkSort = rkSort.col===col ? {col,dir:-rkSort.dir} : {col,dir:-1}; renderRank(); }
+function renderRank() {
+  const {mkt,cl} = ST;
+  const q = (document.getElementById("rkSearch")?.value||"").toLowerCase();
+  let rows = clsFor(mkt).map(c => {
+    const o=clArr(c,mkt,"o"), d=clArr(c,mkt,"d"), r=clArr(c,mkt,"r");
+    const tot=o.reduce((s,v)=>s+v,0);
+    const totD=d.reduce((s,v)=>s+v,0), totR=r.reduce((s,v)=>s+v,0);
+    const momV = pct(o[4],o[3]);
+    return {client:c, mkt:DATA.clients[c].mkt, orders:tot, t5:o[4], mom:momV,
+            drate: tot>0?+(totD/tot*100).toFixed(1):0,
+            rrate: tot>0?+(totR/tot*100).toFixed(1):0,
+            monthly:o};
+  }).filter(r=>r.orders>0 && (q===""||r.client.toLowerCase().includes(q)));
+  if(cl!=="all") rows=rows.filter(r=>r.client===cl);
+  rows.sort((a,b)=>rkSort.dir*(b[rkSort.col]>a[rkSort.col]?1:-1));
+  const mx = Math.max(...rows.map(r=>r.orders),1);
+  document.getElementById("rkCnt").textContent = rows.length;
+  document.getElementById("rkBody").innerHTML = rows.map((r,i) => {
+    const dc = r.drate>=90?"var(--lime)":r.drate>=80?"var(--amber)":"var(--rose)";
+    const rc = r.rrate<=7?"var(--lime)":r.rrate<=15?"var(--amber)":"var(--rose)";
+    const bar = `<div class="mb-wrap"><div class="mb" style="width:70px"><div class="mb-fill" style="width:${Math.round(r.orders/mx*100)}%;background:${i<3?"#38bdf8":i<8?"#a3e635":"#3d445c"}"></div></div></div>`;
+    return `<tr>
+      <td class="mono" style="color:var(--ghost)">${i+1}</td>
+      <td style="font-weight:500">${esc(r.client)}</td>
+      <td>${mktBdg(r.mkt)}</td>
+      <td><div style="display:flex;align-items:center;gap:6px"><span class="mono">${fmt(r.orders)}</span>${bar}</div></td>
+      <td class="mono">${fmt(r.t5)}</td>
+      <td>${spark(r.monthly,r.mom)}</td>
+      <td>${arr(r.mom)}</td>
+      <td class="mono" style="color:${dc}">${r.drate}%</td>
+      <td class="mono" style="color:${rc}">${r.rrate}%</td>
+    </tr>`;
+  }).join("");
+}
+
+// ─ PIE ─
+function renderPie() {
+  kill("pie");
+  const {mkt} = ST;
+  const rows = clsFor(mkt).map(c=>({c,v:clTot(c,mkt,"o")})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v).slice(0,8);
+  const grand = rows.reduce((s,r)=>s+r.v,0);
+  document.getElementById("pieTag").textContent = rows.length + " clients";
+  CH.pie = new Chart(document.getElementById("pieC"), {
+    type:"doughnut",
+    data:{labels:rows.map(r=>r.c), datasets:[{data:rows.map(r=>r.v), backgroundColor:DATA.CL_COLORS.slice(0,rows.length), borderWidth:0, hoverOffset:5}]},
+    options:{...CHART_OPT, cutout:"58%",
+      plugins:{...CHART_OPT.plugins,
+        legend:{display:true,position:"right",labels:{boxWidth:8,padding:8,font:{size:9,family:"'DM Mono',monospace"},color:"#8b92ad"}},
+        tooltip:{...CHART_OPT.plugins.tooltip, callbacks:{label:c=>" "+c.label+": "+fmtF(c.raw)+" ("+Math.round(c.raw/grand*100)+"%)"}}}
+    }
+  });
+}
+
+// ─ RETURN RATE ─
+function renderReturn() {
+  kill("ret");
+  const {mkt} = ST;
+  const rows = clsFor(mkt).map(c=>{
+    const o=clTot(c,mkt,"o"), r=clTot(c,mkt,"r");
+    return {c, rate: o>0?+(r/o*100).toFixed(1):0, o};
+  }).filter(x=>x.o>0).sort((a,b)=>b.rate-a.rate);
+  const bgs = rows.map(r => r.rate>20?"rgba(251,113,133,.85)":r.rate>15?"rgba(251,113,133,.65)":r.rate>10?"rgba(251,191,36,.7)":r.rate>5?"rgba(251,191,36,.5)":"rgba(163,230,53,.6)");
+  CH.ret = new Chart(document.getElementById("retC"), {
+    type:"bar",
+    data:{labels:rows.map(r=>r.c.length>10?r.c.slice(0,10)+"…":r.c), datasets:[{data:rows.map(r=>r.rate), backgroundColor:bgs, borderRadius:3, borderWidth:0}]},
+    options:{...CHART_OPT, indexAxis:"y",
+      plugins:{...CHART_OPT.plugins, tooltip:{...CHART_OPT.plugins.tooltip, callbacks:{label:c=>" "+rows[c.dataIndex].c+": "+c.raw+"%"}}},
+      scales:{
+        x:{max:36,grid:{color:"rgba(255,255,255,.04)"},ticks:{callback:v=>v+"%",font:{size:9,family:"'DM Mono',monospace"}}},
+        y:{grid:{display:false},ticks:{font:{size:9}}}
+      }
+    }
+  });
+}
+
+// ─ DETAIL TABLE ─
+function renderDT(propArg) {
+  const prop = propArg || (ST.met==="orders"?"o":ST.met==="deliver"?"d":"r");
+  const {mkt,cl} = ST;
+  const q = (document.getElementById("tblQ")?.value||"").toLowerCase();
+  let cls = clsFor(mkt).filter(c=>clTot(c,mkt,"o")>0);
+  if(cl!=="all") cls=cls.filter(c=>c===cl);
+  if(q) cls=cls.filter(c=>c.toLowerCase().includes(q));
+  cls.sort((a,b)=>clTot(b,mkt,"o")-clTot(a,mkt,"o"));
+
+  const unit = prop==="o"?"":(prop==="d"?"":"%");
+  const monthTots = [0,1,2,3,4].map(i=>cls.reduce((s,c)=>s+clArr(c,mkt,prop)[i],0));
+  const grand = cls.reduce((s,c)=>s+clTot(c,mkt,"o"),0);
+
+  document.getElementById("dtHead").innerHTML =
+    `<th>Client</th><th>TT</th>${DATA.ML.map(l=>`<th style="text-align:right">${l}</th>`).join("")}<th style="text-align:right">Tổng</th><th style="text-align:right">Share</th><th>Trend</th>`;
+
+  const rows = cls.map(c => {
+    const data = clArr(c,mkt,prop);
+    const tot_o = clTot(c,mkt,"o");
+    const tot_prop = data.reduce((s,v)=>s+v,0);
+    const share = grand>0?(tot_o/grand*100).toFixed(1):0;
+    const momV = pct(data[4],data[3]);
+    const cells = data.map((v,i)=>{
+      const prev = i>0?data[i-1]:v;
+      const chg = pct(v,prev);
+      const col = v===0?"color:var(--ghost)":chg>10?"color:var(--lime)":chg<-10?"color:var(--rose)":"";
+      return `<td class="mono" style="text-align:right;${col}">${v?fmtF(v)+unit:"—"}</td>`;
+    }).join("");
+    return `<tr><td style="font-weight:500">${esc(c)}</td><td>${mktBdg(DATA.clients[c].mkt)}</td>${cells}<td class="mono" style="text-align:right;color:var(--sky)">${fmtF(tot_prop)+unit}</td><td class="mono" style="text-align:right;color:var(--ghost)">${prop==="o"?share+"%":"—"}</td><td>${spark(data,momV)}</td></tr>`;
+  }).join("");
+
+  const ftCells = monthTots.map(v=>`<td class="mono" style="text-align:right;color:var(--lime);font-weight:600">${fmtF(v)+unit}</td>`).join("");
+  const ftRow = `<tr style="border-top:1px solid var(--line2)"><td style="color:var(--dust);font-weight:500">TỔNG</td><td></td>${ftCells}<td class="mono" style="text-align:right;color:var(--lime);font-weight:600">${fmtF(monthTots.reduce((s,v)=>s+v,0))+unit}</td><td class="mono" style="text-align:right;color:var(--ghost)">100%</td><td>${spark(monthTots,pct(monthTots[4],monthTots[3]))}</td></tr>`;
+  document.getElementById("dtBody").innerHTML = rows + ftRow;
+}
+
+// ─ CSV ─
+function doCSV() {
+  const {mkt,cl} = ST;
+  let cls = clsFor(mkt).filter(c=>clTot(c,mkt,"o")>0);
+  if(cl!=="all") cls=cls.filter(c=>c===cl);
+  cls.sort((a,b)=>clTot(b,mkt,"o")-clTot(a,mkt,"o"));
+  const hdr = ["Client","Markets","T1_orders","T2_orders","T3_orders","T4_orders","T5_orders","Total_orders","T1_del","T2_del","T3_del","T4_del","T5_del","T1_ret","T2_ret","T3_ret","T4_ret","T5_ret","Deliver_rate%","Return_rate%"];
+  const rows = cls.map(c=>{
+    const o=clArr(c,mkt,"o"), d=clArr(c,mkt,"d"), r=clArr(c,mkt,"r");
+    const tot_o=o.reduce((s,v)=>s+v,0), tot_d=d.reduce((s,v)=>s+v,0), tot_r=r.reduce((s,v)=>s+v,0);
+    const dr=tot_o?+(tot_d/tot_o*100).toFixed(1):0, rr=tot_o?+(tot_r/tot_o*100).toFixed(1):0;
+    return [c,DATA.clients[c].mkt.join(";"),...o,tot_o,...d,...r,dr,rr].join(",");
+  });
+  const csv = "\uFEFF"+[hdr.join(","),...rows].join("\n");
+  Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),download:`orders_${ST.mkt}_${new Date().toISOString().slice(0,10)}.csv`}).click();
+}
+
+// ─ INIT ─
+window.addEventListener("DOMContentLoaded", () => {
+  rebuildClSel();
+  render();
+});
+</script>
+</body>
+</html>
